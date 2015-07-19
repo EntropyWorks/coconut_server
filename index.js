@@ -7,8 +7,10 @@ var key = new NodeRSA({b: 512});
 
 var serverKey = key.exportKey('public');
 
+app.set('port', (process.env.PORT || 3000));
 
-http.listen(3000, function(req,res) {
+
+http.listen(app.get('port'), function(req,res) {
   console.log('listening');
 });
 
