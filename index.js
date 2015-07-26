@@ -22,11 +22,52 @@ io.on('connection', function(socket){
 
   //handshake
   socket.on('join room', function(data) {
+
+    //add socket into the room
     socket.join(data.sessionId);
+
     socket['sessionId'] = data.sessionId;
     socket['publicKey'] = data.publicKey;
 
+    //log
     console.log(socket.id + " has joined the room " + socket['sessionId']);
+
+    var room = io.sockets.adapter.rooms[data.sessionId];
+    //the number of sockets in the room
+    var roomSize = Object.keys(room).length;
+    //if it's not the only one in the room, then sync
+    if(Object.keys(room).length > 1) {
+        //generate random number between 1 and the size of the room - 1
+        var random = Math.floor((Math.random() * (roomSize-1)) + 1);;
+        var index = 1;
+        for(var clientId in room) {
+          //check if is the random pick
+          if(index == random) {
+            //pick this socket
+            //request emit
+            var clientSocket = io.sockets.connected[clientId];
+            clientSocket.emit('request init');
+            clientSocket.on('init', function(data) {
+              var text = key.decrypt(data, 'utf8');
+              console.log('received: ' + text);
+              //key.importKey(clientSocket['publicKey'], 'public');
+              //encrypt the data with the clien's public key
+              //var encrypted = key.encrypt(text, 'base64');
+              //import back the server's key
+              //key.importKey(serverKey, 'public');
+              socket.emit('init', text);
+
+            })
+            break;
+          }
+
+
+          index++;
+
+        }
+    }
+
+
   });
 
   socket.on('message', function(data) {
@@ -47,8 +88,16 @@ io.on('connection', function(socket){
 
     }
 
-
-
   });
+
+  socket.on('disconnect', function () {
+    console.log('user disconnected');
+    //then leave the room
+    socket.leave(socket['sessionId']);
+  });
+
+  socket.on('init', function(data) {
+
+  })
 
 });
