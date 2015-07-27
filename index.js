@@ -20,6 +20,8 @@ app.get('/key', function(req, res) {
 
 io.on('connection', function(socket){
 
+  socket.emit('paird id', socket.id);
+
   //handshake
   socket.on('join room', function(data) {
 
@@ -90,6 +92,12 @@ io.on('connection', function(socket){
 
   });
 
+  socket.on('audio sync', function(pairId) {
+    socket.on(pairId, function(data) {
+      console.log("The url is : " + data);
+    })
+  });
+
   socket.on('disconnect', function () {
     console.log('user disconnected');
     //then leave the room
@@ -98,6 +106,21 @@ io.on('connection', function(socket){
 
   socket.on('init', function(data) {
 
-  })
+  });
+
+  //identify the socket
+  socket.on('pair audio', function(id) {
+    console.log('socket identified');
+    socket.emit('pair id', socket.id);
+    //join in a sized two room
+    socket.join(id);
+    socket['pairId'] = id;
+  });
+
+  socket.on('send audio note', function(url) {
+    //broadcast to the room
+    io.to(socket['pairId']).emit('receive audio', url);
+  });
+
 
 });
