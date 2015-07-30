@@ -11,7 +11,7 @@ app.set('port', (process.env.PORT || 3000));
 
 
 http.listen(app.get('port'), function(req,res) {
-  console.log('listening');
+  console.log('Coconut Server started!');
 });
 
 app.get('/key', function(req, res) {
@@ -19,8 +19,6 @@ app.get('/key', function(req, res) {
 });
 
 io.on('connection', function(socket){
-
-  socket.emit('paird id', socket.id);
 
   //handshake
   socket.on('join room', function(data) {
@@ -51,15 +49,14 @@ io.on('connection', function(socket){
             clientSocket.emit('request init');
             clientSocket.on('init', function(data) {
               var text = key.decrypt(data, 'utf8');
-              console.log('received: ' + text);
-              //key.importKey(clientSocket['publicKey'], 'public');
-              //encrypt the data with the clien's public key
-              //var encrypted = key.encrypt(text, 'base64');
-              //import back the server's key
-              //key.importKey(serverKey, 'public');
-              socket.emit('init', text);
+              //import client's key
+              key.importKey(socket['publicKey'], 'public');
+              console.log("received : " + text);
+              var encrypted = key.encrypt(text, 'base64');
+              socket.emit('init', encrypted);
+              key.importKey(serverKey, 'public');
 
-            })
+            });
             break;
           }
 
@@ -68,7 +65,6 @@ io.on('connection', function(socket){
 
         }
     }
-
 
   });
 
@@ -92,11 +88,6 @@ io.on('connection', function(socket){
 
   });
 
-  socket.on('audio sync', function(pairId) {
-    socket.on(pairId, function(data) {
-      console.log("The url is : " + data);
-    })
-  });
 
   socket.on('disconnect', function () {
     console.log('user disconnected');
@@ -104,17 +95,14 @@ io.on('connection', function(socket){
     socket.leave(socket['sessionId']);
   });
 
-  socket.on('init', function(data) {
-
-  });
 
   //identify the socket
   socket.on('pair audio', function(id) {
-    console.log('socket identified');
     socket.emit('pair id', socket.id);
     //join in a sized two room
     socket.join(id);
     socket['pairId'] = id;
+    console.log('socket ' + id + ' sucessfully paired');
   });
 
   socket.on('send audio note', function(url) {
